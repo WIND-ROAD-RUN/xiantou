@@ -1,0 +1,10 @@
+/build
+/out
+/.vs
+/ThirdLibrary
+/install
+/projects_to_build.txt
+/ime
+/app.yaml
+/dist
+/.viscode
