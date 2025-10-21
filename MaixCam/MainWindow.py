@@ -59,7 +59,7 @@ class MaixCamMainWindow(MMainWindow):
         btn_margin = 10
         btn_x = self.menuContainer.w - btn_w - btn_margin 
         btn_y = btn_margin
-        self.btn_exit= MPushButton(text="退出程序",x=btn_x, y=btn_y, w=btn_w, h=btn_h)
+        self.btn_exit= MPushButton(text="退出程序",x=btn_margin, y=btn_y, w=btn_w, h=btn_h)
 
         # 连接槽函数
         self.btn_debug.clicked.connect(self.on_debug_clicked)
