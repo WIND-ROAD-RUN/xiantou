@@ -74,7 +74,11 @@ class FrameCallBefore:
                 if (not self._alarm_long_pressed_triggered) and (now - self._alarm_press_start_ms >= 1200):
                     self._alarm_long_pressed_triggered = True
                     Modules.instance().isEnableAlarm = not Modules.instance().isEnableAlarm
-                    print("alarm long-press toggled:", Modules.instance().isEnableAlarm)
+                    if Modules.instance().isEnableAlarmLabel:
+                        if Modules.instance().isEnableAlarm:
+                            Modules.instance().isEnableAlarmLabel.setText("启用")
+                        else:
+                            Modules.instance().isEnableAlarmLabel.setText("禁用")
                     # 清除点击记录以防其他逻辑误触
                     try:
                         km.clear_clicks()
@@ -96,7 +100,7 @@ class FrameCallBefore:
             if getattr(self, "_alarm_timer", None):
                         self._game_clock.cancel_timer(self._alarm_timer)
                         self._alarm_timer = None
-            warningCom.setLow()       
+            warningCom.setLow()
             return
 
         

@@ -93,6 +93,7 @@ class Modules:
         self.disDebug=None
         self.countLabel=None
         self.isEnableAlarm=True
+        self.isEnableAlarmLabel=None
 
         self.warning = GPIOBlink(pin_name=self.paths.pin_name, gpio_name=self.paths.gpio_name, initial=0)
         self.warning.setLow()

@@ -28,7 +28,7 @@ class MaixCamMainWindow(MMainWindow):
         self.tabWidget.setTabBarVisible(False)
 
         self.build_Menu()
-        self.build_Debug()
+        self.build_run()
         self.build_Config()
 
         self.addWidget(self.tabWidget)
@@ -75,7 +75,7 @@ class MaixCamMainWindow(MMainWindow):
         # 添加到tab
         self.tabWidget.addTab(self.menuContainer, "菜单")
 
-    def build_Debug(self):
+    def build_run(self):
         self.debugContainer = MTabPage(0, 0, self.tabWidget.w, self.tabWidget.h)
 
         self.labelDisImgDebug= MLabel(text="Debug模式下显示图像", x=self.margin, y=self.margin,w=self.width-self.margin*2,h=self.height*2)
@@ -86,12 +86,22 @@ class MaixCamMainWindow(MMainWindow):
         btn_margin = 10
         btn_x = self.debugContainer.w - btn_w - btn_margin  # 右上角
         btn_y = btn_margin
-        self.exit_debug_btn = MPushButton(text="退出", x=btn_x, y=btn_y, w=btn_w, h=btn_h)
-        self.exit_debug_btn.clicked.connect(self.on_exit_to_menu)
-        self.debugContainer.add_child(self.exit_debug_btn)
+        self.exit_run_btn = MPushButton(text="退出", x=btn_x, y=btn_y, w=btn_w, h=btn_h)
+        self.exit_run_btn.clicked.connect(self.on_exit_to_menu)
+        self.debugContainer.add_child(self.exit_run_btn)
+    
+        btn_y += 70
+        alarm_text=""
+        if Modules.instance().isEnableAlarm:
+            alarm_text="启用"
+        else:
+            alarm_text="禁用"
+        self.btnIsEnableAlarm=MPushButton(text=alarm_text,x=btn_x, y=btn_y, w=btn_w, h=btn_h)
+        self.debugContainer.add_child(self.btnIsEnableAlarm)
+        Modules.instance().isEnableAlarmLabel=self.btnIsEnableAlarm
 
         btn_y += 70
-        self.countButton=MPushButton(text="当前识别数量:0",x=btn_x, y=btn_y, w=btn_w, h=btn_h)
+        self.countButton=MPushButton(text="0",x=btn_x, y=btn_y, w=btn_w, h=btn_h)
         self.debugContainer.add_child(self.countButton)
 
         self.tabWidget.addTab(self.debugContainer, "Debug")
