@@ -76,8 +76,18 @@ class Modules:
         self.imgProCom=ImgProCom(self.engineCom)
         #self.camera=CameraCom(width=self.engineCom.engine.input_width(),height=self.engineCom.engine.input_height(),fmt=self.engineCom.engine.input_format())
         self.camera=CameraCom(width=640,height=480,fmt=self.engineCom.engine.input_format(),buff_num=1)
-        self.camera.set_exposure(100)
-        self.camera.set_gain(0)
+
+        # 强制将配置值转换为 int 再设置，避免字符串/浮点等类型导致的 TypeError
+        try:
+            self.camera.set_exposure(int(self.config.camera_exposure_us))
+        except Exception:
+            # 忽略错误或记录，保证不会抛出类型错误
+            self.camera.set_exposure(self.config.camera_exposure_us)
+
+        try:
+            self.camera.set_gain(int(self.config.camera_gain))
+        except Exception:
+            self.camera.set_gain(self.config.camera_gain)
 
         self.imgProCom.context.classIDWithName=self.defineVar()
         self.disDebug=None
