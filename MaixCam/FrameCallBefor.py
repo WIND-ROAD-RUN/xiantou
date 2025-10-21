@@ -27,7 +27,6 @@ class FrameCallBefore:
 
         # 新增：连续空检测计数与阈值（连续多少帧/周期未检测到物体才触发报警）
         self._alarm_counter = 0
-        self.enable_alarm = True
 
         # 长按检测：用于实现“按住2秒切换 enable_alarm”
         self._alarm_press_start_ms = None
@@ -72,10 +71,10 @@ class FrameCallBefore:
                 self._alarm_long_pressed_triggered = False
             else:
                 # 已按下，检查是否达到2秒且未触发过
-                if (not self._alarm_long_pressed_triggered) and (now - self._alarm_press_start_ms >= 2000):
+                if (not self._alarm_long_pressed_triggered) and (now - self._alarm_press_start_ms >= 1200):
                     self._alarm_long_pressed_triggered = True
-                    self.enable_alarm = not self.enable_alarm
-                    print("alarm long-press toggled:", self.enable_alarm)
+                    Modules.instance().isEnableAlarm = not Modules.instance().isEnableAlarm
+                    print("alarm long-press toggled:", Modules.instance().isEnableAlarm)
                     # 清除点击记录以防其他逻辑误触
                     try:
                         km.clear_clicks()
@@ -93,7 +92,7 @@ class FrameCallBefore:
 
     def warning_alarm_timeout(self,processResult:ProcessResultIndexMap):
         warningCom = Modules.instance().warning
-        if not self.enable_alarm:
+        if not Modules.instance().isEnableAlarm:
             if getattr(self, "_alarm_timer", None):
                         self._game_clock.cancel_timer(self._alarm_timer)
                         self._alarm_timer = None
