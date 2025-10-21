@@ -51,7 +51,7 @@ class MaixCamMainWindow(MMainWindow):
         btn_y_start = self.titleLabel.y + self.titleLabel.h + btn_gap
 
         # 分别创建并命名按钮（竖直排列）
-        self.btn_debug = MPushButton(text="Debug模式", x=btn_x, y=btn_y_start, w=btn_width, h=btn_height)
+        self.btn_startRun = MPushButton(text="开始运行", x=btn_x, y=btn_y_start, w=btn_width, h=btn_height)
         self.btn_config = MPushButton(text="配置修改", x=btn_x, y=btn_y_start + (btn_height + btn_gap), w=btn_width, h=btn_height)
 
         btn_w = 150
@@ -62,13 +62,13 @@ class MaixCamMainWindow(MMainWindow):
         self.btn_exit= MPushButton(text="退出程序",x=btn_margin, y=btn_y, w=btn_w, h=btn_h)
 
         # 连接槽函数
-        self.btn_debug.clicked.connect(self.on_debug_clicked)
+        self.btn_startRun.clicked.connect(self.on_startRun_clicked)
         # 已移除 release 的连接
         self.btn_config.clicked.connect(self.on_config_clicked)
         self.btn_exit.clicked.connect(self.on_exit_clicked)
 
         self.menuContainer.add_child(self.titleLabel)
-        self.menuContainer.add_child(self.btn_debug)
+        self.menuContainer.add_child(self.btn_startRun)
         self.menuContainer.add_child(self.btn_config)
         self.menuContainer.add_child(self.btn_exit)
 
@@ -147,9 +147,9 @@ class MaixCamMainWindow(MMainWindow):
         self.tabWidget.addTab(self.configContainer, "配置")
 
     # 槽函数定义
-    def on_debug_clicked(self):
+    def on_startRun_clicked(self):
         print("Debug模式")
-        RunningInfo.instance().run_mode = RunMode.DEBUG
+        RunningInfo.instance().run_mode = RunMode.RUN
         self.tabWidget.setCurrentIndex(1)
 
     def on_exit_clicked(self):

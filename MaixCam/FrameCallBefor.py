@@ -52,12 +52,10 @@ class FrameCallBefore:
 
     def run(self):
         mode = RunningInfo.instance().run_mode
-        if mode == RunMode.DEBUG:
-            self.run_debug()
+        if mode == RunMode.RUN:
+            self.run_run()
         elif mode == RunMode.STOP:
             self.run_stop()
-        elif mode == RunMode.RUN:
-            self.run_run()
 
     def warning_alarm_timeout(self,processResult:ProcessResultIndexMap):
         warningCom = Modules.instance().warning
@@ -128,7 +126,7 @@ class FrameCallBefore:
                 pass
             self._alarm_timer = None
 
-    def run_debug(self):
+    def run_run(self):
         now = self._now_ms()
         elapsed = self._elapsed_ms(now, self._last_debug_ms)
         # 只有超过间隔才执行昂贵处理
@@ -183,37 +181,6 @@ class FrameCallBefore:
     def run_stop(self):
         # 停止模式下可做低频维护任务，或直接 return
         return
-
-    def run_run(self):
-        now = self._now_ms()
-        km = Modules.instance().keyMonotor
-        # 先 peek，不满足节流则不消费事件
-        if not km.peek_click(key_id=UserKey):
-            return
-
-        elapsed = self._elapsed_ms(now, self._last_run_ms)
-        if elapsed < self.run_interval_ms:
-            return
-
-        # 达到间隔后再消费触发并执行一次处理
-        if not km.take_click(key_id=UserKey):
-            return
-        km.clear_clicks()
-
-        self._last_run_ms = now
-
-        camera = Modules.instance().camera
-        imgProCom = Modules.instance().imgProCom
-
-        img = camera.read()
-        imgProCom.run(img)
-        processResult = imgProCom.context.processResultIndexMap
-        self.warning_alarm_timeout(processResult)
-        maskImg = imgProCom.getMaskImg(img)
-
-        mods = Modules.instance()
-        if getattr(mods, "disRelease", None):
-            mods.disRelease.setImage(maskImg)
-
+    
     def isTriggerTakePictures(self):
         return Modules.instance().keyMonotor.peek_click(key_id=UserKey)

@@ -3,7 +3,6 @@ from enum import Enum
 class RunMode(Enum):
     STOP = 0
     RUN = 1
-    DEBUG = 2
 
 class RunningInfo:
     _instance = None
