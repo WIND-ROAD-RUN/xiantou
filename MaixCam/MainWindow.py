@@ -111,38 +111,74 @@ class MaixCamMainWindow(MMainWindow):
 
         cfg = Modules.instance().config
 
-        # 报警时间 设置 (ms)
-        self.lb_baojingshijian = MLabel(text="报警时间:", x=50, y=100)
+        # 两列布局参数
+        left_label_x = 50
+        left_btn_x = 210
+        left_unit_x = left_btn_x + 120
+
+        right_col_start = self.configContainer.w // 2 + 20
+        right_label_x = right_col_start
+        right_btn_x = right_label_x + 160
+        right_unit_x = right_btn_x + 120
+
+        row_y = [100, 220, 340]  # 三行高度，可根据需要调整
+
+        # 第一列（左）
+        # 报警时间 设置 (ms) - 左上
+        self.lb_baojingshijian = MLabel(text="报警时间:", x=left_label_x, y=row_y[0])
         self.configContainer.add_child(self.lb_baojingshijian)
 
-        self.btn_baojingshijian = MPushButton(text=str(getattr(cfg, "baojingshijian", 1000)), x=210, y=100, w=100, h=50)
+        self.btn_baojingshijian = MPushButton(text=str(getattr(cfg, "baojingshijian", 1000)), x=left_btn_x, y=row_y[0], w=100, h=50)
         self.btn_baojingshijian.clicked.connect(self.on_baojingshijian_clicked)
         self.configContainer.add_child(self.btn_baojingshijian)
 
-        self.lb_baojingshijianUnit = MLabel(text="ms", x=330, y=110)
+        self.lb_baojingshijianUnit = MLabel(text="ms", x=left_btn_x, y=row_y[0] + 60)
         self.configContainer.add_child(self.lb_baojingshijianUnit)
 
-        # NG 报警数 设置 (个)
-        self.lb_ng_baojingshu = MLabel(text="NG报警数:", x=50, y=220)
+        # NG 报警数 设置 (个) - 左中
+        self.lb_ng_baojingshu = MLabel(text="NG报警数:", x=left_label_x, y=row_y[1])
         self.configContainer.add_child(self.lb_ng_baojingshu)
 
-        self.btn_ng_baojingshu = MPushButton(text=str(getattr(cfg, "ng_baojingshu", 1)), x=210, y=220, w=100, h=50)
+        self.btn_ng_baojingshu = MPushButton(text=str(getattr(cfg, "ng_baojingshu", 1)), x=left_btn_x, y=row_y[1], w=100, h=50)
         self.btn_ng_baojingshu.clicked.connect(self.on_ng_baojingshu_clicked)
         self.configContainer.add_child(self.btn_ng_baojingshu)
 
-        self.lb_ng_baojingshuUnit = MLabel(text="个", x=330, y=230)
+        self.lb_ng_baojingshuUnit = MLabel(text="个", x=left_btn_x, y=row_y[1] + 60)
         self.configContainer.add_child(self.lb_ng_baojingshuUnit)
 
-        # NG 阈值 设置 (个)
-        self.lb_ng_yuzhi = MLabel(text="NG阈值:", x=50, y=340)
+        # NG 阈值 设置 (个) - 左下
+        self.lb_ng_yuzhi = MLabel(text="NG阈值:", x=left_label_x, y=row_y[2])
         self.configContainer.add_child(self.lb_ng_yuzhi)
 
-        self.btn_ng_yuzhi = MPushButton(text=str(getattr(cfg, "ng_yuzhi", 1)), x=210, y=340, w=100, h=50)
+        self.btn_ng_yuzhi = MPushButton(text=str(getattr(cfg, "ng_yuzhi", 1)), x=left_btn_x, y=row_y[2], w=100, h=50)
         self.btn_ng_yuzhi.clicked.connect(self.on_ng_yuzhi_clicked)
         self.configContainer.add_child(self.btn_ng_yuzhi)
 
-        self.lb_ng_yuzhiUnit = MLabel(text="个", x=330, y=350)
+        self.lb_ng_yuzhiUnit = MLabel(text="个", x=left_btn_x, y=row_y[2] + 60)
         self.configContainer.add_child(self.lb_ng_yuzhiUnit)
+
+        # 第二列（右）
+        # 相机曝光 设置 (us) - 右上
+        self.lb_camera_exposure = MLabel(text="相机曝光:", x=right_label_x, y=row_y[0])
+        self.configContainer.add_child(self.lb_camera_exposure)
+
+        self.btn_camera_exposure = MPushButton(text=str(getattr(cfg, "camera_exposure_us", 10000)), x=right_btn_x, y=row_y[0], w=120, h=50)
+        self.btn_camera_exposure.clicked.connect(self.on_camera_exposure_clicked)
+        self.configContainer.add_child(self.btn_camera_exposure)
+
+        self.lb_camera_exposureUnit = MLabel(text="us", x=right_btn_x, y=row_y[0] + 60)
+        self.configContainer.add_child(self.lb_camera_exposureUnit)
+
+        # 相机增益 设置 (倍) - 右中
+        self.lb_camera_gain = MLabel(text="相机增益:", x=right_label_x, y=row_y[1])
+        self.configContainer.add_child(self.lb_camera_gain)
+
+        self.btn_camera_gain = MPushButton(text=str(getattr(cfg, "camera_gain", 1)), x=right_btn_x, y=row_y[1], w=100, h=50)
+        self.btn_camera_gain.clicked.connect(self.on_camera_gain_clicked)
+        self.configContainer.add_child(self.btn_camera_gain)
+
+        self.lb_camera_gainUnit = MLabel(text="倍", x=right_unit_x, y=row_y[1] + 10)
+        self.configContainer.add_child(self.lb_camera_gainUnit)
 
         self.tabWidget.addTab(self.configContainer, "配置")
 
@@ -191,3 +227,19 @@ class MaixCamMainWindow(MMainWindow):
             val = numberKeyBoard.getValue()
             self.btn_ng_yuzhi.setText(str(val))
             Modules.instance().config.ng_yuzhi = val
+
+    def on_camera_exposure_clicked(self):
+        numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=7)
+        res = numberKeyBoard.exec()
+        if res:
+            val = numberKeyBoard.getValue()
+            self.btn_camera_exposure.setText(str(val))
+            Modules.instance().config.camera_exposure_us = val
+
+    def on_camera_gain_clicked(self):
+        numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=4)
+        res = numberKeyBoard.exec()
+        if res:
+            val = numberKeyBoard.getValue()
+            self.btn_camera_gain.setText(str(val))
+            Modules.instance().config.camera_gain = val

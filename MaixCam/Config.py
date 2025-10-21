@@ -3,10 +3,14 @@ import os
 
 class Config:
     def __init__(self):
-        # 仅保留需要的三个配置项
-        self.baojingshijian = 1000    # 报警时间，单位 ms，默认 1000
-        self.ng_baojingshu = 3        # NG 报警数，单位 个，默认 3
-        self.ng_yuzhi = 2             # NG 阈值，单位 个，默认 2
+        # 基本配置
+        self.baojingshijian = 1000        # 报警时间，单位 ms，默认 1000
+        self.ng_baojingshu = 3            # NG 报警数，单位 个，默认 3
+        self.ng_yuzhi = 2                 # NG 阈值，单位 个，默认 2
+
+        # 相机配置（新增）
+        self.camera_exposure_us = 10000   # 相机曝光，单位 us，默认 10000
+        self.camera_gain = 1              # 相机增益，单位 倍，默认 1
 
     def save(self, path):
         """
@@ -18,6 +22,8 @@ class Config:
                 "baojingshijian": self.baojingshijian,
                 "ng_baojingshu": self.ng_baojingshu,
                 "ng_yuzhi": self.ng_yuzhi,
+                "camera_exposure_us": self.camera_exposure_us,
+                "camera_gain": self.camera_gain,
             }
             dirn = os.path.dirname(path)
             if dirn and not os.path.exists(dirn):
@@ -41,6 +47,8 @@ class Config:
             if "baojingshijian" in d: self.baojingshijian = d["baojingshijian"]
             if "ng_baojingshu" in d: self.ng_baojingshu = d["ng_baojingshu"]
             if "ng_yuzhi" in d: self.ng_yuzhi = d["ng_yuzhi"]
+            if "camera_exposure_us" in d: self.camera_exposure_us = d["camera_exposure_us"]
+            if "camera_gain" in d: self.camera_gain = d["camera_gain"]
             return True
         except Exception:
             return False
