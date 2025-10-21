@@ -27,7 +27,8 @@ def main():
     iniEnv()
     app = MApplication()
     win = MaixCamMainWindow(0, 0, app.img_width, app.img_height,margin=0)
-    
+    win.tabWidget.setCurrentIndex(1)
+    RunningInfo().instance().run_mode = RunMode.RUN
     frameCallBefore = FrameCallBefore()
 
     app.setPreFrameCallback(frameCallBefore)

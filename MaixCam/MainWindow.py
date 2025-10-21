@@ -184,7 +184,7 @@ class MaixCamMainWindow(MMainWindow):
 
     # 槽函数定义
     def on_startRun_clicked(self):
-        print("Debug模式")
+        print("运行模式")
         RunningInfo.instance().run_mode = RunMode.RUN
         self.tabWidget.setCurrentIndex(1)
 
@@ -201,7 +201,7 @@ class MaixCamMainWindow(MMainWindow):
     def on_exit_to_menu(self):
         RunningInfo.instance().run_mode = RunMode.STOP
         Modules.instance().warning.setLow()
-        print("退出Debug")
+        print("退出运行模式")
         self.tabWidget.setCurrentIndex(0)
 
     def on_baojingshijian_clicked(self):
