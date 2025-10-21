@@ -11,6 +11,7 @@ from Mt.NumberKeyBoard import NumberKeyBoard
 from maix import image
 
 class MaixCamMainWindow(MMainWindow):
+  
     def __init__(self, x, y, width, height, margin=0):
         super().__init__(x, y, width, height)
         self.width = width
@@ -119,6 +120,7 @@ class MaixCamMainWindow(MMainWindow):
 
     def build_Config(self):
         self.configContainer = MTabPage(0, 0, self.tabWidget.w, self.tabWidget.h)
+
         btn_w = 100
         btn_h = 50
         btn_margin = 10
@@ -129,75 +131,40 @@ class MaixCamMainWindow(MMainWindow):
         self.exit_config_btn.clicked.connect(self.on_exit_to_menu)
         self.configContainer.add_child(self.exit_config_btn)
 
-        cfg=Modules.instance().config
+        cfg = Modules.instance().config
 
-        # 间隔设置
-        self.lb_jiange= MLabel(text="间隔:", x=50, y=100)
-        self.configContainer.add_child(self.lb_jiange)
+        # 报警时间 设置 (ms)
+        self.lb_baojingshijian = MLabel(text="报警时间:", x=50, y=100)
+        self.configContainer.add_child(self.lb_baojingshijian)
 
-        self.btn_jiange = MPushButton(text=str(cfg.jiange), x=200, y=100, w=100, h=50)
-        self.btn_jiange.clicked.connect(self.on_jiange_clicked)
-        self.configContainer.add_child(self.btn_jiange)
+        self.btn_baojingshijian = MPushButton(text=str(getattr(cfg, "baojingshijian", 1000)), x=210, y=100, w=100, h=50)
+        self.btn_baojingshijian.clicked.connect(self.on_baojingshijian_clicked)
+        self.configContainer.add_child(self.btn_baojingshijian)
 
-        self.lb_jiangeUnit = MLabel(text="个", x=200, y=160)
-        self.configContainer.add_child(self.lb_jiangeUnit)
+        self.lb_baojingshijianUnit = MLabel(text="ms", x=330, y=110)
+        self.configContainer.add_child(self.lb_baojingshijianUnit)
 
-        # 延时触发时间设置
-        self.lb_yanshichufashijian= MLabel(text="延时触发时间:", x=300, y=100)
-        self.configContainer.add_child(self.lb_yanshichufashijian)
+        # NG 报警数 设置 (个)
+        self.lb_ng_baojingshu = MLabel(text="NG报警数:", x=50, y=220)
+        self.configContainer.add_child(self.lb_ng_baojingshu)
 
-        self.btn_yanshichufashijian = MPushButton(text=str(cfg.yanshichufashijian), x=520, y=100, w=100, h=50)
-        self.btn_yanshichufashijian.clicked.connect(self.on_yanshichufashijian_clicked)
-        self.configContainer.add_child(self.btn_yanshichufashijian)
+        self.btn_ng_baojingshu = MPushButton(text=str(getattr(cfg, "ng_baojingshu", 1)), x=210, y=220, w=100, h=50)
+        self.btn_ng_baojingshu.clicked.connect(self.on_ng_baojingshu_clicked)
+        self.configContainer.add_child(self.btn_ng_baojingshu)
 
-        self.lb_yanshichufashijianUnit = MLabel(text="ms", x=520, y=160)
-        self.configContainer.add_child(self.lb_yanshichufashijianUnit)
+        self.lb_ng_baojingshuUnit = MLabel(text="个", x=330, y=230)
+        self.configContainer.add_child(self.lb_ng_baojingshuUnit)
 
-        # 触发时间设置
-        self.lb_chufashijian= MLabel(text="触发时间:", x=50, y=220)
-        self.configContainer.add_child(self.lb_chufashijian)
+        # NG 阈值 设置 (个)
+        self.lb_ng_yuzhi = MLabel(text="NG阈值:", x=50, y=340)
+        self.configContainer.add_child(self.lb_ng_yuzhi)
 
-        self.btn_chufashijian = MPushButton(text=str(cfg.chufashijian), x=200, y=220, w=100, h=50)
-        self.btn_chufashijian.clicked.connect(self.on_chufashijian_clicked)
-        self.configContainer.add_child(self.btn_chufashijian)
+        self.btn_ng_yuzhi = MPushButton(text=str(getattr(cfg, "ng_yuzhi", 1)), x=210, y=340, w=100, h=50)
+        self.btn_ng_yuzhi.clicked.connect(self.on_ng_yuzhi_clicked)
+        self.configContainer.add_child(self.btn_ng_yuzhi)
 
-        self.lb_chufashijianUnit = MLabel(text="ms", x=200, y=280)
-        self.configContainer.add_child(self.lb_chufashijianUnit)
-
-        # 小斗一次设置
-        self.lb_xiaodouyici= MLabel(text="小斗一次:", x=300, y=220)
-        self.configContainer.add_child(self.lb_xiaodouyici)
-
-        self.btn_xiaodouyici = MPushButton(text=str(cfg.xiaodouyici), x=520, y=220, w=100, h=50)
-        self.btn_xiaodouyici.clicked.connect(self.on_xiaodouyici_clicked)
-        self.configContainer.add_child(self.btn_xiaodouyici)
-
-        self.tabWidget.addTab(self.configContainer, "配置")
-
-        self.lb_xiaodouyiciUnit = MLabel(text="个", x=520, y=280)
-        self.configContainer.add_child(self.lb_xiaodouyiciUnit)
-
-        # 大斗一次设置
-        self.lb_dadouyici= MLabel(text="大斗一次:", x=50, y=340)
-        self.configContainer.add_child(self.lb_dadouyici)
-
-        self.btn_dadouyici = MPushButton(text=str(cfg.dadouyici), x=200, y=340, w=100, h=50)
-        self.btn_dadouyici.clicked.connect(self.on_dadouyici_clicked)
-        self.configContainer.add_child(self.btn_dadouyici)
-
-        self.lb_dadouyiciUnit = MLabel(text="个", x=200, y=400)
-        self.configContainer.add_child(self.lb_dadouyiciUnit)
-
-        # 总数设置
-        self.lb_zongshu= MLabel(text="总数:", x=300, y=340)
-        self.configContainer.add_child(self.lb_zongshu)
-
-        self.btn_zongshu = MPushButton(text=str(cfg.zongshu), x=520, y=340, w=100, h=50)
-        self.btn_zongshu.clicked.connect(self.on_zongshu_clicked)
-        self.configContainer.add_child(self.btn_zongshu)
-
-        self.lb_zongshuUnit = MLabel(text="个", x=520, y=400)
-        self.configContainer.add_child(self.lb_zongshuUnit)
+        self.lb_ng_yuzhiUnit = MLabel(text="个", x=330, y=350)
+        self.configContainer.add_child(self.lb_ng_yuzhiUnit)
 
         self.tabWidget.addTab(self.configContainer, "配置")
 
@@ -227,44 +194,26 @@ class MaixCamMainWindow(MMainWindow):
         print("退出Debug")
         self.tabWidget.setCurrentIndex(0)
 
-    def on_jiange_clicked(self):
-        numberKeyBoard=NumberKeyBoard(50, 50, 300, 400, max_len=4)
-        res=numberKeyBoard.exec()
+    def on_baojingshijian_clicked(self):
+        numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=6)
+        res = numberKeyBoard.exec()
         if res:
-           self.btn_jiange.setText(str(numberKeyBoard.getValue()))
-           Modules.instance().config.jiange = numberKeyBoard.getValue()
+            val = numberKeyBoard.getValue()
+            self.btn_baojingshijian.setText(str(val))
+            Modules.instance().config.baojingshijian = val
 
-    def on_yanshichufashijian_clicked(self):
-        numberKeyBoard=NumberKeyBoard(50, 50, 300, 400, max_len=4)
-        res=numberKeyBoard.exec()
+    def on_ng_baojingshu_clicked(self):
+        numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=4)
+        res = numberKeyBoard.exec()
         if res:
-           self.btn_yanshichufashijian.setText(str(numberKeyBoard.getValue()))
-           Modules.instance().config.yanshichufashijian = numberKeyBoard.getValue()
+            val = numberKeyBoard.getValue()
+            self.btn_ng_baojingshu.setText(str(val))
+            Modules.instance().config.ng_baojingshu = val
 
-    def on_chufashijian_clicked(self):
-        numberKeyBoard=NumberKeyBoard(50, 50, 300, 400, max_len=4)
-        res=numberKeyBoard.exec()
+    def on_ng_yuzhi_clicked(self):
+        numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=4)
+        res = numberKeyBoard.exec()
         if res:
-           self.btn_chufashijian.setText(str(numberKeyBoard.getValue()))
-           Modules.instance().config.chufashijian = numberKeyBoard.getValue()
-
-    def on_xiaodouyici_clicked(self):
-        numberKeyBoard=NumberKeyBoard(50, 50, 300, 400, max_len=4)
-        res=numberKeyBoard.exec()
-        if res:
-            self.btn_xiaodouyici.setText(str(numberKeyBoard.getValue()))
-            Modules.instance().config.xiaodouyici = numberKeyBoard.getValue()
-
-    def on_dadouyici_clicked(self):
-        numberKeyBoard=NumberKeyBoard(50, 50, 300, 400, max_len=4)
-        res=numberKeyBoard.exec()
-        if res:
-           self.btn_dadouyici.setText(str(numberKeyBoard.getValue()))
-           Modules.instance().config.dadouyici = numberKeyBoard.getValue()
-
-    def on_zongshu_clicked(self):
-        numberKeyBoard=NumberKeyBoard(50, 50, 300, 400, max_len=4)
-        res=numberKeyBoard.exec()
-        if res:
-           self.btn_zongshu.setText(str(numberKeyBoard.getValue()))
-           Modules.instance().config.zongshu = numberKeyBoard.getValue()
+            val = numberKeyBoard.getValue()
+            self.btn_ng_yuzhi.setText(str(val))
+            Modules.instance().config.ng_yuzhi = val

@@ -3,12 +3,10 @@ import os
 
 class Config:
     def __init__(self):
-        self.jiange = 0
-        self.yanshichufashijian = 0
-        self.chufashijian = 0
-        self.xiaodouyici = 0
-        self.dadouyici = 0
-        self.zongshu = 0
+        # 仅保留需要的三个配置项
+        self.baojingshijian = 1000    # 报警时间，单位 ms，默认 1000
+        self.ng_baojingshu = 3        # NG 报警数，单位 个，默认 3
+        self.ng_yuzhi = 2             # NG 阈值，单位 个，默认 2
 
     def save(self, path):
         """
@@ -17,14 +15,10 @@ class Config:
         """
         try:
             d = {
-                "jiange": self.jiange,
-                "yanshichufashijian": self.yanshichufashijian,
-                "chufashijian": self.chufashijian,
-                "xiaodouyici": self.xiaodouyici,
-                "dadouyici": self.dadouyici,
-                "zongshu": self.zongshu,
+                "baojingshijian": self.baojingshijian,
+                "ng_baojingshu": self.ng_baojingshu,
+                "ng_yuzhi": self.ng_yuzhi,
             }
-            # 确保目录存在
             dirn = os.path.dirname(path)
             if dirn and not os.path.exists(dirn):
                 os.makedirs(dirn)
@@ -44,13 +38,9 @@ class Config:
                 return False
             with open(path, "r", encoding="utf-8") as f:
                 d = json.load(f)
-            # 仅设置已知字段，避免注入未知属性
-            if "jiange" in d: self.jiange = d["jiange"]
-            if "yanshichufashijian" in d: self.yanshichufashijian = d["yanshichufashijian"]
-            if "chufashijian" in d: self.chufashijian = d["chufashijian"]
-            if "xiaodouyici" in d: self.xiaodouyici = d["xiaodouyici"]
-            if "dadouyici" in d: self.dadouyici = d["dadouyici"]
-            if "zongshu" in d: self.zongshu = d["zongshu"]
+            if "baojingshijian" in d: self.baojingshijian = d["baojingshijian"]
+            if "ng_baojingshu" in d: self.ng_baojingshu = d["ng_baojingshu"]
+            if "ng_yuzhi" in d: self.ng_yuzhi = d["ng_yuzhi"]
             return True
         except Exception:
             return False
