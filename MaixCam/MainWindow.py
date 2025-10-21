@@ -210,7 +210,7 @@ class MaixCamMainWindow(MMainWindow):
         if res:
             val = numberKeyBoard.getValue()
             self.btn_baojingshijian.setText(str(val))
-            Modules.instance().config.baojingshijian = val
+            Modules.instance().config.baojingshijian = int(val)
 
     def on_ng_baojingshu_clicked(self):
         numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=4)
@@ -218,7 +218,7 @@ class MaixCamMainWindow(MMainWindow):
         if res:
             val = numberKeyBoard.getValue()
             self.btn_ng_baojingshu.setText(str(val))
-            Modules.instance().config.ng_baojingshu = val
+            Modules.instance().config.ng_baojingshu = int(val)
 
     def on_ng_yuzhi_clicked(self):
         numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=4)
@@ -226,7 +226,7 @@ class MaixCamMainWindow(MMainWindow):
         if res:
             val = numberKeyBoard.getValue()
             self.btn_ng_yuzhi.setText(str(val))
-            Modules.instance().config.ng_yuzhi = val
+            Modules.instance().config.ng_yuzhi = int(val)
 
     def on_camera_exposure_clicked(self):
         numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=7)
@@ -234,7 +234,8 @@ class MaixCamMainWindow(MMainWindow):
         if res:
             val = numberKeyBoard.getValue()
             self.btn_camera_exposure.setText(str(val))
-            Modules.instance().config.camera_exposure_us = val
+            Modules.instance().config.camera_exposure_us = int(val)
+            Modules.instance().camera.set_exposure(int(val))
 
     def on_camera_gain_clicked(self):
         numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=4)
@@ -242,4 +243,5 @@ class MaixCamMainWindow(MMainWindow):
         if res:
             val = numberKeyBoard.getValue()
             self.btn_camera_gain.setText(str(val))
-            Modules.instance().config.camera_gain = val
+            Modules.instance().config.camera_gain = int(val)
+            Modules.instance().camera.set_gain(int(val))
