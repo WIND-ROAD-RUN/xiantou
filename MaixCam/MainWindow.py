@@ -177,7 +177,7 @@ class MaixCamMainWindow(MMainWindow):
         self.btn_camera_gain.clicked.connect(self.on_camera_gain_clicked)
         self.configContainer.add_child(self.btn_camera_gain)
 
-        self.lb_camera_gainUnit = MLabel(text="倍", x=right_unit_x, y=row_y[1] + 10)
+        self.lb_camera_gainUnit = MLabel(text="倍", x=right_btn_x, y=row_y[1] + 60)
         self.configContainer.add_child(self.lb_camera_gainUnit)
 
         self.tabWidget.addTab(self.configContainer, "配置")
