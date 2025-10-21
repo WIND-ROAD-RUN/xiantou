@@ -27,7 +27,6 @@ class FrameCallBefore:
 
         # 新增：连续空检测计数与阈值（连续多少帧/周期未检测到物体才触发报警）
         self._alarm_counter = 0
-        self._alarm_threshold = 2  # 根据需要调整（例如 3 次连续未检测到才报警）
 
     def __call__(self):
         self.run()
@@ -59,12 +58,13 @@ class FrameCallBefore:
 
     def warning_alarm_timeout(self,processResult:ProcessResultIndexMap):
         warningCom = Modules.instance().warning
+        cfg=Modules.instance().config
 
         # 无检测结果：计数 +1；有检测结果：清零并立即关闭报警
         if len(processResult) == 0:
             self._alarm_counter += 1
         else:
-            if len(processResult[0]) < 5:
+            if len(processResult[0]) < int(cfg.ng_yuzhi):
                 self._alarm_counter += 1
             else:
                 # 有检测到物体：重置计数，取消定时器并确保报警关闭
@@ -82,7 +82,7 @@ class FrameCallBefore:
                 return
 
         # 只有达到连续未检测阈值才真正触发报警
-        if self._alarm_counter < self._alarm_threshold:
+        if self._alarm_counter < int(cfg.ng_baojingshu):
             # 阈值未达，不报警（可选：确保报警为低电平）
             try:
                 warningCom.setLow()
@@ -90,13 +90,13 @@ class FrameCallBefore:
                 pass
             return
 
-        # 达到阈值：开启报警，并把关闭报警的定时器重置为 1000ms（每次触发都会重置计时）
+        # 达到阈值：开启报警，并把关闭报警的定时器重置为 cfg.baojingshijian ms（每次触发都会重置计时）
         try:
             warningCom.setHight()
         except Exception:
             pass
 
-        # 取消已有定时器（如果存在），重新安排 1000ms 后关闭报警
+        # 取消已有定时器（如果存在），重新安排 cfg.baojingshijian ms 后关闭报警
         try:
             if getattr(self, "_alarm_timer", None):
                 self._game_clock.cancel_timer(self._alarm_timer)
@@ -117,7 +117,7 @@ class FrameCallBefore:
                 pass
 
         try:
-            self._alarm_timer = self._game_clock.schedule_once(1000, _alarm_timeout)
+            self._alarm_timer = self._game_clock.schedule_once(int(cfg.baojingshijian), _alarm_timeout)
         except Exception:
             # 若时钟不可用或调度失败，兜底直接关闭（避免永久报警）
             try:
