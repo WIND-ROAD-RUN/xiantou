@@ -21,7 +21,6 @@ class MaixCamMainWindow(MMainWindow):
         self.buildUI()
 
         Modules.instance().disDebug=self.labelDisImgDebug
-        Modules.instance().disRelease=self.labelDisImgRel
         Modules.instance().countLabel=self.countButton
 
     def buildUI(self):
@@ -30,7 +29,6 @@ class MaixCamMainWindow(MMainWindow):
 
         self.build_Menu()
         self.build_Debug()
-        self.build_Release()
         self.build_Config()
 
         self.addWidget(self.tabWidget)
@@ -45,7 +43,7 @@ class MaixCamMainWindow(MMainWindow):
         self.titleLabel.y = self.margin + 5
 
         # 按钮参数
-        btn_count = 3
+        btn_count = 2  # 仅保留 Debug 和 配置
         btn_width = int(self.menuContainer.w * 0.5)
         btn_height = int(self.menuContainer.h * 0.12)
         btn_gap = int((self.menuContainer.h - self.titleLabel.y - self.titleLabel.h - btn_count * btn_height) / (btn_count + 1))
@@ -54,8 +52,7 @@ class MaixCamMainWindow(MMainWindow):
 
         # 分别创建并命名按钮（竖直排列）
         self.btn_debug = MPushButton(text="Debug模式", x=btn_x, y=btn_y_start, w=btn_width, h=btn_height)
-        self.btn_release = MPushButton(text="Release模式", x=btn_x, y=btn_y_start + btn_height + btn_gap, w=btn_width, h=btn_height)
-        self.btn_config = MPushButton(text="配置修改", x=btn_x, y=btn_y_start + (btn_height + btn_gap) * 2, w=btn_width, h=btn_height)
+        self.btn_config = MPushButton(text="配置修改", x=btn_x, y=btn_y_start + (btn_height + btn_gap), w=btn_width, h=btn_height)
 
         btn_w = 150
         btn_h = 50
@@ -66,13 +63,12 @@ class MaixCamMainWindow(MMainWindow):
 
         # 连接槽函数
         self.btn_debug.clicked.connect(self.on_debug_clicked)
-        self.btn_release.clicked.connect(self.on_release_clicked)
+        # 已移除 release 的连接
         self.btn_config.clicked.connect(self.on_config_clicked)
         self.btn_exit.clicked.connect(self.on_exit_clicked)
 
         self.menuContainer.add_child(self.titleLabel)
         self.menuContainer.add_child(self.btn_debug)
-        self.menuContainer.add_child(self.btn_release)
         self.menuContainer.add_child(self.btn_config)
         self.menuContainer.add_child(self.btn_exit)
 
@@ -99,24 +95,6 @@ class MaixCamMainWindow(MMainWindow):
         self.debugContainer.add_child(self.countButton)
 
         self.tabWidget.addTab(self.debugContainer, "Debug")
-
-    def build_Release(self):
-        self.releaseContainer = MTabPage(0, 0, self.tabWidget.w, self.tabWidget.h)
-
-        self.labelDisImgRel= MLabel(text="Release模式下运行中...", x=self.margin, y=self.margin,w=self.width-self.margin*2,h=self.height*2)
-        self.releaseContainer.add_child(self.labelDisImgRel)
-
-        btn_w = 100
-        btn_h = 50
-        btn_margin = 10
-        btn_x = self.releaseContainer.w - btn_w - btn_margin  # 右上角
-        btn_y = btn_margin
-        self.exit_release_btn = MPushButton(text="退出", x=btn_x, y=btn_y, w=btn_w, h=btn_h)
-        self.exit_release_btn.clicked.connect(self.on_exit_to_menu)
-        self.releaseContainer.add_child(self.exit_release_btn)
-
-
-        self.tabWidget.addTab(self.releaseContainer, "Release")
 
     def build_Config(self):
         self.configContainer = MTabPage(0, 0, self.tabWidget.w, self.tabWidget.h)
@@ -178,14 +156,10 @@ class MaixCamMainWindow(MMainWindow):
         Modules.instance().config.save(path=Modules.instance().paths.config_path)
         MApplication.instance().exit()
     
-    def on_release_clicked(self):
-        print("Release模式")
-        self.tabWidget.setCurrentIndex(2)
-        RunningInfo.instance().run_mode = RunMode.RUN
-
     def on_config_clicked(self):
         print("配置修改")
-        self.tabWidget.setCurrentIndex(3)
+        # 移除 release 面板后，配置页索引改为 2（菜单=0, Debug=1, 配置=2）
+        self.tabWidget.setCurrentIndex(2)
         RunningInfo.instance().run_mode = RunMode.STOP
 
     def on_exit_to_menu(self):

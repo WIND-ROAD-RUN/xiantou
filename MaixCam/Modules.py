@@ -81,7 +81,6 @@ class Modules:
 
         self.imgProCom.context.classIDWithName=self.defineVar()
         self.disDebug=None
-        self.disRelease=None
         self.countLabel=None
 
         self.warning = GPIOBlink(pin_name=self.paths.pin_name, gpio_name=self.paths.gpio_name, initial=0)
