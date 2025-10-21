@@ -27,6 +27,11 @@ class FrameCallBefore:
 
         # 新增：连续空检测计数与阈值（连续多少帧/周期未检测到物体才触发报警）
         self._alarm_counter = 0
+        self.enable_alarm = True
+
+        # 长按检测：用于实现“按住2秒切换 enable_alarm”
+        self._alarm_press_start_ms = None
+        self._alarm_long_pressed_triggered = False
 
     def __call__(self):
         self.run()
@@ -51,6 +56,36 @@ class FrameCallBefore:
 
     def run(self):
         mode = RunningInfo.instance().run_mode
+        km = Modules.instance().keyMonotor
+
+        # 长按2秒切换 enable_alarm 的逻辑
+        now = self._now_ms()
+        try:
+            key_down = km.is_down(key_id=UserKey)
+        except Exception:
+            key_down = False
+
+        if key_down:
+            if self._alarm_press_start_ms is None:
+                # 按下开始计时
+                self._alarm_press_start_ms = now
+                self._alarm_long_pressed_triggered = False
+            else:
+                # 已按下，检查是否达到2秒且未触发过
+                if (not self._alarm_long_pressed_triggered) and (now - self._alarm_press_start_ms >= 2000):
+                    self._alarm_long_pressed_triggered = True
+                    self.enable_alarm = not self.enable_alarm
+                    print("alarm long-press toggled:", self.enable_alarm)
+                    # 清除点击记录以防其他逻辑误触
+                    try:
+                        km.clear_clicks()
+                    except Exception:
+                        pass
+        else:
+            # 按键释放，重置长按检测状态
+            self._alarm_press_start_ms = None
+            self._alarm_long_pressed_triggered = False
+
         if mode == RunMode.RUN:
             self.run_run()
         elif mode == RunMode.STOP:
@@ -58,6 +93,14 @@ class FrameCallBefore:
 
     def warning_alarm_timeout(self,processResult:ProcessResultIndexMap):
         warningCom = Modules.instance().warning
+        if not self.enable_alarm:
+            if getattr(self, "_alarm_timer", None):
+                        self._game_clock.cancel_timer(self._alarm_timer)
+                        self._alarm_timer = None
+            warningCom.setLow()       
+            return
+
+        
         cfg=Modules.instance().config
 
         # 无检测结果：计数 +1；有检测结果：清零并立即关闭报警
