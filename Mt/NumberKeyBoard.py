@@ -139,9 +139,27 @@ class NumberKeyBoard(MDialog):
         # 更新标签文本
         self.display_label.setText(self._buf if self._buf else "")
 
-    # 新增接口：获取当前值（优先返回 exec 的结果，其次返回当前缓冲）
     def getValue(self):
-        return self.value if self.value is not None else self._buf
+        # 优先使用已确认的 self.value，其次使用输入缓冲 self._buf
+        v = getattr(self, 'value', None)
+        if v is None:
+            v = self._buf
+
+        # 空字符串或 None 返回 None 表示无值
+        if v is None:
+            return None
+        s = str(v).strip()
+        if s == "":
+            return None
+
+        # 尝试转换为 int；若直接 int 失败，再尝试 float->int；都失败返回 None
+        try:
+            return int(s)
+        except (ValueError, TypeError):
+            try:
+                return int(float(s))
+            except Exception:
+                return None
 
     # 可选：清除当前缓冲与结果
     def clearValue(self):

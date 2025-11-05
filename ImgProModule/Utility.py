@@ -1,7 +1,7 @@
 class AIVisionCreateConfig:
     def __init__(self):
         self.model_path = "/root/models/yolo11n.mud"
-        self.conf_threshold = 0.2
+        self.conf_threshold = 0.3
         self.nms_threshold = 0.1
         self.dual_buff = True
 

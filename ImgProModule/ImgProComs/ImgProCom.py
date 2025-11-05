@@ -40,3 +40,11 @@ class ImgProCom:
             ImgPainterCom.drawRectOnImg(img,obj,cfg)
 
         return img
+    
+    def getMaskImgWithountText(self,img):
+        processResult=self.context.processResult
+        for obj in processResult:
+            cfg=ConfigDrawRect()
+            ImgPainterCom.drawRectOnImg(img,obj,cfg)
+
+        return img
