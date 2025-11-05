@@ -172,6 +172,14 @@ class FrameCallBefore:
                 pass
             self._alarm_timer = None
 
+    def isTrigger(self):
+        # 按下按键保存图片
+        km = Modules.instance().keyMonotor
+        if  km.take_click(key_id=UserKey):
+            km.clear_clicks()
+            return True
+        return False
+
     def run_run(self):
         now = self._now_ms()
         elapsed = self._elapsed_ms(now, self._last_debug_ms)
@@ -190,9 +198,7 @@ class FrameCallBefore:
         processResult = imgProCom.context.processResultIndexMap
         self.warning_alarm_timeout(processResult)
 
-        # 按下按键保存图片
-        km = Modules.instance().keyMonotor
-        if not km.take_click(key_id=UserKey):
+        if self.isTrigger():
             dirPath = Modules.instance().paths.img_path
             # 生成时间戳文件名：YYYYMMDD_HHMMSS_mmm.jpg
             try:
@@ -215,7 +221,6 @@ class FrameCallBefore:
             except Exception:
                 pass
             img.save(os.path.join(dirPath, fname))
-            km.clear_clicks()
 
         #maskImg = imgProCom.getMaskImg(img)
 
