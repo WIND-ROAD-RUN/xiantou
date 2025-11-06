@@ -27,8 +27,8 @@ class Modules:
     def defineVar(self):
         classIDWithName=ClassIDWithName()
         classIDWithName[0]=r"线头"
-        classIDWithName[1]=r"其他"
-        classIDWithName[2]=r"断线"
+        classIDWithName[1]=r"断线"
+        classIDWithName[2]=r"其他"
         return classIDWithName
     
     def readConfig(self):
@@ -73,12 +73,15 @@ class Modules:
         engineConfig=AIVisionCreateConfig()
         engineConfig.dual_buff=False
         engineConfig.model_path=Modules().paths.model_path
+        engineConfig.conf_threshold=0.2
+        engineConfig.nms_threshold=0.1
         print("model_path:",engineConfig.model_path)
         
         self.engineCom=DetectImgProCom(engineConfig)
         self.imgProCom=ImgProCom(self.engineCom)
         #self.camera=CameraCom(width=self.engineCom.engine.input_width(),height=self.engineCom.engine.input_height(),fmt=self.engineCom.engine.input_format())
         self.camera=CameraCom(width=640,height=480,fmt=self.engineCom.engine.input_format(),buff_num=1)
+
 
         # 强制将配置值转换为 int 再设置，避免字符串/浮点等类型导致的 TypeError
         try:

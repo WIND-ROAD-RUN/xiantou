@@ -51,6 +51,7 @@ class FrameCallBefore:
         # 长按检测：用于实现“按住2秒切换 enable_alarm”
         self._alarm_press_start_ms = None
         self._alarm_long_pressed_triggered = False
+        self.lastIsSkipTakePicture=False
 
     def __call__(self):
         self.run()
@@ -110,7 +111,12 @@ class FrameCallBefore:
             self._alarm_long_pressed_triggered = False
 
         if mode == RunMode.RUN:
-            self.run_run()
+            if self.lastIsSkipTakePicture:
+                self.run_run()
+                self.lastIsSkipTakePicture=False
+            else:
+                self.lastIsSkipTakePicture=True
+    
         elif mode == RunMode.STOP:
             self.run_stop()
 
@@ -133,22 +139,26 @@ class FrameCallBefore:
             else:
                 return True
             
+    def decide_alarm_Frame_must_alarm_without_windowSize(self, processResultIndexMap: ProcessResultIndexMap):
+        try:
+            duanxian_count = len(processResultIndexMap.get(ClassId.duanxian, []))
+            print(processResultIndexMap)
+        except Exception:
+            try:
+                duanxian_count = len(processResultIndexMap[ClassId.duanxian])
+            except Exception:
+                duanxian_count = 0
+
+            if duanxian_count > 0:
+                return True
+            else:
+                return False
+            
     def decide_alarm_Frame_is_skip(self, processResultIndexMap: ProcessResultIndexMap):
         isSkip = False
         if len(processResultIndexMap) == 0:
             isSkip=False
         else:
-            try:
-                duanxian_count = len(processResultIndexMap.get(ClassId.duanxian, []))
-            except Exception:
-                try:
-                    duanxian_count = len(processResultIndexMap[ClassId.duanxian])
-                except Exception:
-                    duanxian_count = 0
-
-            if duanxian_count > 0:
-                isSkip = True
-
             try:
                 qita = len(processResultIndexMap.get(ClassId.qita, []))
             except Exception:
@@ -221,6 +231,13 @@ class FrameCallBefore:
             except Exception:
                 self._skip_frames_remaining = max(0, 2 - 1)
             return None
+        
+        isMustAlarm = self.decide_alarm_Frame_must_alarm_without_windowSize(processResultIndexMap)
+        if isMustAlarm:
+            print("本帧断线告警，直接开启报警")
+            return "open"
+        elif isMustAlarm is False:
+            return None
 
         # 判断本帧是否为线头告警（decide_alarm_action_by_xiantou 返回 True 表示“无告警/合格”）
         isXiantouAlarm = self.decide_alarm_action_by_xiantou(processResultIndexMap)
@@ -261,6 +278,14 @@ class FrameCallBefore:
 
         # 如果窗口内达到触发条件，则请求开启报警
         if alarm_count_in_window >= ng_threshold:
+            # 打印滑动窗口调试信息：窗口内容、窗口内告警数、阈值、窗口大小
+            try:
+                print("Alarm-window:", self._recent_alarm_window,
+                      "count_in_window:", alarm_count_in_window,
+                      "ng_threshold:", ng_threshold,
+                      "window_size:", window_size)
+            except Exception:
+                pass
             # 遇到触发情况时，重置连续合格计数（因为出现了告警）
             self._clear_counter = 0
             return "open"
