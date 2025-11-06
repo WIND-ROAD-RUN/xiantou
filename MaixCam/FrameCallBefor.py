@@ -3,7 +3,7 @@ from MaixCam.RunningInfo import RunningInfo, RunMode
 from MaixCam.Modules import Modules
 from Mt.MApplication import MApplication
 from Mt.KeyMonitor import UserKey
-from Utilty import ClassId
+from MaixCam.Utilty import ClassId
 from maix import time
 import os
 
@@ -28,6 +28,15 @@ class FrameCallBefore:
 
         # 新增：连续空检测计数与阈值（连续多少帧/周期未检测到物体才触发报警）
         self._alarm_counter = 0
+
+        # 用于“连续多帧达到合格检测才关闭报警”的计数和阈值（可从 config 中读取）
+        self._clear_counter = 0
+        try:
+            cfg = Modules.instance().config
+            # config 中若存在 alarm_clear_consecutive 则使用，否则默认 3 帧
+            self._clear_required = int(getattr(cfg, "alarm_clear_consecutive", 3))
+        except Exception:
+            self._clear_required = 2
 
         # 长按检测：用于实现“按住2秒切换 enable_alarm”
         self._alarm_press_start_ms = None
@@ -95,55 +104,72 @@ class FrameCallBefore:
         elif mode == RunMode.STOP:
             self.run_stop()
 
-    def warning_alarm_timeout(self,processResultIndexMap:ProcessResultIndexMap):
-        warningCom = Modules.instance().warning
-        if not Modules.instance().isEnableAlarm:
-            if getattr(self, "_alarm_timer", None):
-                        self._game_clock.cancel_timer(self._alarm_timer)
-                        self._alarm_timer = None
-            warningCom.setLow()
-            return
+    def decide_alarm_action(self, processResultIndexMap: ProcessResultIndexMap):
+        """
+        判断是否需要开启或关闭报警：
+        返回值："open" / "close" / None
+        仅负责判断并维护计数器（self._alarm_counter / self._clear_counter）。
+        """
+        cfg = Modules.instance().config
+        try:
+            clear_needed = int(getattr(cfg, "alarm_clear_consecutive", self._clear_required))
+        except Exception:
+            clear_needed = self._clear_required
 
-        
-        cfg=Modules.instance().config
-
-        # 无检测结果：计数 +1；有检测结果：清零并立即关闭报警
+        # 无检测结果：计数 +1，并重置连续合格计数
         if len(processResultIndexMap) == 0:
             self._alarm_counter += 1
+            self._clear_counter = 0
         else:
-            if len(processResultIndexMap[ClassId.XianTou]) < int(cfg.ng_yuzhi):
-                self._alarm_counter += 1
-            else:
-                # 有检测到物体：重置计数，取消定时器并确保报警关闭
-                self._alarm_counter = 0
-                try:
-                    if getattr(self, "_alarm_timer", None):
-                        self._game_clock.cancel_timer(self._alarm_timer)
-                        self._alarm_timer = None
-                except Exception:
-                    pass
-                try:
-                    warningCom.setLow()
-                except Exception:
-                    pass
-                return
-
-        # 只有达到连续未检测阈值才真正触发报警
-        if self._alarm_counter < int(cfg.ng_baojingshu):
-            # 阈值未达，不报警（可选：确保报警为低电平）
+            # 安全获取线头计数
             try:
-                warningCom.setLow()
+                xiantou_count = len(processResultIndexMap.get(ClassId.XianTou, []))
             except Exception:
-                pass
-            return
+                try:
+                    xiantou_count = len(processResultIndexMap[ClassId.XianTou])
+                except Exception:
+                    xiantou_count = 0
 
-        # 达到阈值：开启报警，并把关闭报警的定时器重置为 cfg.baojingshijian ms（每次触发都会重置计时）
+            # 未达阈值视为不合格 -> 增加未检测计数并重置合格计数
+            if xiantou_count < int(cfg.ng_yuzhi):
+                self._alarm_counter += 1
+                self._clear_counter = 0
+            else:
+                # 达到阈值视为一次合格，累计连续合格计数
+                self._clear_counter += 1
+                # 只有连续达到 clear_needed 次才认为可以关闭报警
+                if self._clear_counter >= clear_needed:
+                    # 达到清除条件，重置计数并请求关闭
+                    self._alarm_counter = 0
+                    self._clear_counter = 0
+                    return "close"
+                else:
+                    # 尚未达到连续清除次数，不做打开或关闭决定
+                    return None
+
+        # 检查是否需要开启报警（连续未检测达到阈值）
+        try:
+            ng_threshold = int(cfg.ng_baojingshu)
+        except Exception:
+            ng_threshold = self._alarm_counter  # 保守处理：如果无法解析就不触发
+        if self._alarm_counter >= ng_threshold:
+            return "open"
+
+        return None
+
+    def open_alarm(self):
+        """
+        执行开启报警：置高电平并（重）设置定时器在 cfg.baojingshijian 毫秒后自动关闭。
+        """
+        warningCom = Modules.instance().warning
+        cfg = Modules.instance().config
+
         try:
             warningCom.setHight()
         except Exception:
             pass
 
-        # 取消已有定时器（如果存在），重新安排 cfg.baojingshijian ms 后关闭报警
+        # 取消已有定时器
         try:
             if getattr(self, "_alarm_timer", None):
                 self._game_clock.cancel_timer(self._alarm_timer)
@@ -155,23 +181,66 @@ class FrameCallBefore:
                 warningCom.setLow()
             except Exception:
                 pass
-            # 清除句柄
             try:
                 self._alarm_timer = None
-                # 超时后也将计数清零，避免立即再次触发（如果希望保留计数可去掉）
                 self._alarm_counter = 0
+                self._clear_counter = 0
             except Exception:
                 pass
 
         try:
             self._alarm_timer = self._game_clock.schedule_once(int(cfg.baojingshijian), _alarm_timeout)
         except Exception:
-            # 若时钟不可用或调度失败，兜底直接关闭（避免永久报警）
+            # 若无法调度定时器则兜底关闭
             try:
                 warningCom.setLow()
             except Exception:
                 pass
             self._alarm_timer = None
+
+    def close_alarm(self):
+        """
+        立即关闭报警：取消定时器、置低电平并重置计数器。
+        """
+        warningCom = Modules.instance().warning
+        try:
+            if getattr(self, "_alarm_timer", None):
+                self._game_clock.cancel_timer(self._alarm_timer)
+                self._alarm_timer = None
+        except Exception:
+            pass
+
+        try:
+            warningCom.setLow()
+        except Exception:
+            pass
+
+        self._alarm_counter = 0
+        self._clear_counter = 0
+
+    def warning_alarm_timeout(self, processResultIndexMap: ProcessResultIndexMap):
+        """
+        入口：先检查全局开关，再通过 decide_alarm_action 得到动作并调用 open_alarm/close_alarm。
+        """
+        warningCom = Modules.instance().warning
+        if not Modules.instance().isEnableAlarm:
+            try:
+                if getattr(self, "_alarm_timer", None):
+                    self._game_clock.cancel_timer(self._alarm_timer)
+                    self._alarm_timer = None
+            except Exception:
+                pass
+            try:
+                warningCom.setLow()
+            except Exception:
+                pass
+            return
+
+        action = self.decide_alarm_action(processResultIndexMap)
+        if action == "open":
+            self.open_alarm()
+        elif action == "close":
+            self.close_alarm()
 
     def isTrigger(self):
         # 按下按键保存图片
