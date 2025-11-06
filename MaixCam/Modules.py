@@ -69,6 +69,7 @@ class Modules:
         self.readConfig()
 
         engineConfig=AIVisionCreateConfig()
+        engineConfig.dual_buff=False
         engineConfig.model_path=Modules().paths.model_path
         print("model_path:",engineConfig.model_path)
         
