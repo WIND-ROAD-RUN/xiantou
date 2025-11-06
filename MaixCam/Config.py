@@ -7,6 +7,7 @@ class Config:
         self.baojingshijian = 1000        # 报警时间，单位 ms，默认 1000
         self.ng_baojingshu = 3            # NG 报警数，单位 个，默认 3
         self.ng_yuzhi = 2                 # NG 阈值，单位 个，默认 2
+        self.ng_baojinshu_rongyu=5
 
         # 相机配置（新增）
         self.camera_exposure_us = 10000   # 相机曝光，单位 us，默认 10000
@@ -24,6 +25,7 @@ class Config:
                 "ng_yuzhi": self.ng_yuzhi,
                 "camera_exposure_us": self.camera_exposure_us,
                 "camera_gain": self.camera_gain,
+                "ng_baojinshu_rongyu": self.ng_baojinshu_rongyu,
             }
             dirn = os.path.dirname(path)
             if dirn and not os.path.exists(dirn):
@@ -49,6 +51,7 @@ class Config:
             if "ng_yuzhi" in d: self.ng_yuzhi = d["ng_yuzhi"]
             if "camera_exposure_us" in d: self.camera_exposure_us = d["camera_exposure_us"]
             if "camera_gain" in d: self.camera_gain = d["camera_gain"]
+            if "ng_baojinshu_rongyu" in d: self.ng_baojinshu_rongyu = d["ng_baojinshu_rongyu"]
             return True
         except Exception:
             return False

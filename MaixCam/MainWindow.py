@@ -190,9 +190,25 @@ class MaixCamMainWindow(MMainWindow):
         self.lb_camera_gainUnit = MLabel(text="倍", x=right_btn_x, y=row_y[1] + 60)
         self.configContainer.add_child(self.lb_camera_gainUnit)
 
+        self.lb_ng_baojinshu_rongyu = MLabel(text="报警数冗余值:", x=right_label_x, y=row_y[2])
+        self.configContainer.add_child(self.lb_ng_baojinshu_rongyu)
+
+        self.btn_ng_baojinshu_rongyu = MPushButton(text=str(getattr(cfg, "ng_baojinshu_rongyu", 5)), x=right_btn_x, y=row_y[2], w=100, h=50)
+        self.btn_ng_baojinshu_rongyu.clicked.connect(self.on_ng_baojinshu_rongyu_clicked)
+        self.configContainer.add_child(self.btn_ng_baojinshu_rongyu)
+
         self.tabWidget.addTab(self.configContainer, "配置")
 
     # 槽函数定义
+
+    def on_ng_baojinshu_rongyu_clicked(self):
+        numberKeyBoard = NumberKeyBoard(50, 50, 300, 400, max_len=4)
+        res = numberKeyBoard.exec()
+        if res:
+            val = numberKeyBoard.getValue()
+            self.btn_ng_baojinshu_rongyu.setText(str(val))
+            Modules.instance().config.ng_baojinshu_rongyu = int(val)
+
     def on_startRun_clicked(self):
         print("运行模式")
         RunningInfo.instance().run_mode = RunMode.RUN
