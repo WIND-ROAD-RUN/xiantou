@@ -43,6 +43,11 @@ class FrameCallBefore:
             self._window_size = 5
         self._recent_alarm_window = []  # 存 0/1 值，长度保持 <= _window_size
 
+        # 用于跳帧控制：当检测到断线/其他异常需要跳过报警时，跳过当前帧及随后的 skip_frames_remaining 帧
+        # 将跳过的“总帧数（包含本帧）”作为可配置成员变量，允许硬编码修改
+        self.skip_frame_total = 2  # <-- 硬编码修改此值，例如 3 表示跳过当前帧及后两帧（共3帧）
+        self._skip_frames_remaining = 0
+
         # 长按检测：用于实现“按住2秒切换 enable_alarm”
         self._alarm_press_start_ms = None
         self._alarm_long_pressed_triggered = False
@@ -192,21 +197,35 @@ class FrameCallBefore:
         - 函数不会直接与硬件或定时器交互，便于单元测试和职责分离。
         """
         cfg = Modules.instance().config
+
+        # 如果之前的跳帧计数器未用尽，直接跳过本帧判定（消耗一次）
+        if getattr(self, "_skip_frames_remaining", 0) > 0:
+            try:
+                self._skip_frames_remaining -= 1
+            except Exception:
+                self._skip_frames_remaining = 0
+            return None
+
         # 获取连续合格清除阈值（连续多少帧为合格才关闭报警）
         try:
             clear_needed = int(getattr(cfg, "alarm_clear_consecutive", self._clear_required))
         except Exception:
             clear_needed = self._clear_required
 
+        # 如果当前帧因断线/其他异常被判定为跳过报警，则跳过当前帧并标记再跳若干帧（总跳过帧数由 self.skip_frame_total 控制）
+        isSkip = self.decide_alarm_Frame_is_skip(processResultIndexMap)
+        if isSkip:
+            try:
+                # 当前帧已被跳过，设置后续需要跳过的帧数（总跳过帧数 = self.skip_frame_total）
+                self._skip_frames_remaining = max(0, int(getattr(self, "skip_frame_total", 2)) - 1)
+            except Exception:
+                self._skip_frames_remaining = max(0, 2 - 1)
+            return None
+
         # 判断本帧是否为线头告警（decide_alarm_action_by_xiantou 返回 True 表示“无告警/合格”）
         isXiantouAlarm = self.decide_alarm_action_by_xiantou(processResultIndexMap)
         # 语义：isAlarmInFrame 为 True 表示本帧被视为“告警帧”
         isAlarmInFrame = bool(isXiantouAlarm)
-
-        # 如果当前帧因断线/其他异常被判定为跳过报警，直接不做动作判断
-        isSkip = self.decide_alarm_Frame_is_skip(processResultIndexMap)
-        if isSkip:
-            return None
 
         # 窗口大小（最近 N 帧），优先读取配置 ng_baojinshu_rongyu
         try:
