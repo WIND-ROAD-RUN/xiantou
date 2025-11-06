@@ -227,6 +227,8 @@ class MaixCamMainWindow(MMainWindow):
     def on_exit_to_menu(self):
         RunningInfo.instance().run_mode = RunMode.STOP
         Modules.instance().warning.setLow()
+        Modules.instance().config.save(path=Modules.instance().paths.config_path)
+
         print("退出运行模式")
         self.tabWidget.setCurrentIndex(0)
 
