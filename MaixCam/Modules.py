@@ -27,6 +27,8 @@ class Modules:
     def defineVar(self):
         classIDWithName=ClassIDWithName()
         classIDWithName[0]=r"线头"
+        classIDWithName[1]=r"其他"
+        classIDWithName[2]=r"断线"
         return classIDWithName
     
     def readConfig(self):

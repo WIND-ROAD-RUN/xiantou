@@ -3,6 +3,7 @@ from MaixCam.RunningInfo import RunningInfo, RunMode
 from MaixCam.Modules import Modules
 from Mt.MApplication import MApplication
 from Mt.KeyMonitor import UserKey
+from Utilty import ClassId
 from maix import time
 import os
 
@@ -94,7 +95,7 @@ class FrameCallBefore:
         elif mode == RunMode.STOP:
             self.run_stop()
 
-    def warning_alarm_timeout(self,processResult:ProcessResultIndexMap):
+    def warning_alarm_timeout(self,processResultIndexMap:ProcessResultIndexMap):
         warningCom = Modules.instance().warning
         if not Modules.instance().isEnableAlarm:
             if getattr(self, "_alarm_timer", None):
@@ -107,10 +108,10 @@ class FrameCallBefore:
         cfg=Modules.instance().config
 
         # 无检测结果：计数 +1；有检测结果：清零并立即关闭报警
-        if len(processResult) == 0:
+        if len(processResultIndexMap) == 0:
             self._alarm_counter += 1
         else:
-            if len(processResult[0]) < int(cfg.ng_yuzhi):
+            if len(processResultIndexMap[ClassId.XianTou]) < int(cfg.ng_yuzhi):
                 self._alarm_counter += 1
             else:
                 # 有检测到物体：重置计数，取消定时器并确保报警关闭
@@ -195,8 +196,8 @@ class FrameCallBefore:
         img = camera.read()
         imgProCom.run(img)
 
-        processResult = imgProCom.context.processResultIndexMap
-        self.warning_alarm_timeout(processResult)
+        processResultIndexMap = imgProCom.context.processResultIndexMap
+        self.warning_alarm_timeout(processResultIndexMap)
 
         if self.isTrigger():
             dirPath = Modules.instance().paths.img_path
@@ -222,11 +223,11 @@ class FrameCallBefore:
                 pass
             img.save(os.path.join(dirPath, fname))
 
-        #maskImg = imgProCom.getMaskImg(img)
+        maskImg = imgProCom.getMaskImg(img)
 
         mods = Modules.instance()
         if getattr(mods, "disDebug", None):
-            mods.disDebug.setImage(img)
+            mods.disDebug.setImage(maskImg)
             mods.countLabel.setText(str(len(imgProCom.context.processResult)))
 
     def run_stop(self):
