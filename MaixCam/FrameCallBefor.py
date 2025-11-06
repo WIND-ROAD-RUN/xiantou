@@ -225,8 +225,6 @@ class FrameCallBefore:
         if isMustAlarm:
             print("本帧断线告警，直接开启报警")
             return "open"
-        elif isMustAlarm is False:
-            return None
 
         # 判断本帧是否为线头告警（decide_alarm_action_by_xiantou 返回 True 表示“无告警/合格”）
         isXiantouAlarm = self.decide_alarm_action_by_xiantou(processResultIndexMap)
