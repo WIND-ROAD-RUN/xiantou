@@ -26,9 +26,6 @@ class FrameCallBefore:
         # 报警定时器句柄（GameClock Timer 对象），用于在 N ms 后自动关闭报警
         self._alarm_timer = None
 
-        # 新增：连续空检测计数与阈值（连续多少帧/周期未检测到物体才触发报警）
-        self._alarm_counter = 0
-
         # 用于“连续多帧达到合格检测才关闭报警”的计数和阈值（可从 config 中读取）
         self._clear_counter = 0
         try:
@@ -37,6 +34,14 @@ class FrameCallBefore:
             self._clear_required = int(getattr(cfg, "alarm_clear_consecutive", 3))
         except Exception:
             self._clear_required = 2
+
+        # 新增：用于滑动窗口统计在最近 N 帧中 isAlarmInFrame 为 True 的次数（由 ng_baojinshu_rongyu 控制）
+        try:
+            cfg = Modules.instance().config
+            self._window_size = int(getattr(cfg, "ng_baojinshu_rongyu", 5))
+        except Exception:
+            self._window_size = 5
+        self._recent_alarm_window = []  # 存 0/1 值，长度保持 <= _window_size
 
         # 长按检测：用于实现“按住2秒切换 enable_alarm”
         self._alarm_press_start_ms = None
@@ -129,7 +134,11 @@ class FrameCallBefore:
         """
         判断是否需要开启或关闭报警：
         返回值："open" / "close" / None
-        仅负责判断并维护计数器（self._alarm_counter / self._clear_counter）。
+        仅负责判断并维护计数器（self._alarm_counter / self._clear_counter / _recent_alarm_window）。
+        开启规则（修改后）：
+            在最近 self._window_size 帧内，isAlarmInFrame 为 True 的次数 >= cfg.ng_baojinshu 时触发 "open"。
+        关闭规则（不变）：
+            连续达到 clear_needed 次认为可以关闭报警（返回 "close"）。
         """
         cfg = Modules.instance().config
         try:
@@ -137,33 +146,64 @@ class FrameCallBefore:
         except Exception:
             clear_needed = self._clear_required
 
-        isXiantouAlarm=self.decide_alarm_action_by_xiantou(processResultIndexMap)
+        # 原 decide_alarm_action_by_xiantou 的返回语义：True/False
+        # 这里我们把其结果解释为：isXiantouAlarm == True 表示“无报警/合格”，
+        # 所以 isAlarmInFrame 应为 not isXiantouAlarm（即只有当 decide 返回 False 才视为本帧告警）
+        isXiantouAlarm = self.decide_alarm_action_by_xiantou(processResultIndexMap)
+        isAlarmInFrame = bool(isXiantouAlarm)
 
-        isAlarmInFrame = isXiantouAlarm
-       
-        if isAlarmInFrame:
-            self._alarm_counter += 1
+        # 更新滑动窗口（0/1）
+        try:
+            window_size = int(getattr(cfg, "ng_baojinshu_rongyu", self._window_size))
+        except Exception:
+            window_size = self._window_size
+
+        self._recent_alarm_window.append(1 if isAlarmInFrame else 0)
+        # 保持窗口长度
+        if len(self._recent_alarm_window) > window_size:
+            try:
+                # pop oldest
+                self._recent_alarm_window.pop(0)
+            except Exception:
+                # 如果出错，重置窗口以保证一致性
+                self._recent_alarm_window = self._recent_alarm_window[-window_size:]
+
+        # 统计窗口内告警帧数
+        try:
+            alarm_count_in_window = sum(self._recent_alarm_window)
+        except Exception:
+            # 兜底计算
+            alarm_count_in_window = 0
+            for v in self._recent_alarm_window:
+                try:
+                    alarm_count_in_window += int(bool(v))
+                except Exception:
+                    pass
+
+        # 如果窗口内达到触发条件，则请求开启
+        try:
+            ng_threshold = int(cfg.ng_baojingshu)
+        except Exception:
+            ng_threshold = 1
+
+        if alarm_count_in_window >= ng_threshold:
             self._clear_counter = 0
-        else:
+            return "open"
+
+        # 若本帧被认为是合格（非告警），则增加连续合格计数
+        if not isAlarmInFrame:
             self._clear_counter += 1
             # 只有连续达到 clear_needed 次才认为可以关闭报警
             if self._clear_counter >= clear_needed:
                 # 达到清除条件，重置计数并请求关闭
-                self._alarm_counter = 0
                 self._clear_counter = 0
+                # 同时清空窗口，避免残留影响
+                self._recent_alarm_window = []
                 return "close"
             else:
-                # 尚未达到连续清除次数，不做打开或关闭决定
                 return None
 
-        # 检查是否需要开启报警（连续未检测达到阈值）
-        try:
-            ng_threshold = int(cfg.ng_baojingshu)
-        except Exception:
-            ng_threshold = self._alarm_counter  # 保守处理：如果无法解析就不触发
-        if self._alarm_counter >= ng_threshold:
-            return "open"
-
+        # 默认不做任何动作
         return None
 
     def open_alarm(self):
@@ -192,7 +232,6 @@ class FrameCallBefore:
                 pass
             try:
                 self._alarm_timer = None
-                self._alarm_counter = 0
                 self._clear_counter = 0
             except Exception:
                 pass
@@ -224,12 +263,11 @@ class FrameCallBefore:
         except Exception:
             pass
 
-        self._alarm_counter = 0
         self._clear_counter = 0
 
     def warning_alarm_timeout(self, processResultIndexMap: ProcessResultIndexMap):
         """
-        入口：先检查全局开关，再通过 decide_alarm_action 得到动作并调用 open_alarm/close_alarm。
+        入口：先检查全局开关，再通过 decide_alarm_action 得到动作並调用 open_alarm/close_alarm。
         """
         warningCom = Modules.instance().warning
         if not Modules.instance().isEnableAlarm:
