@@ -8,7 +8,7 @@ class UtiltyPath:
 
 class ClassId:
     XianTou=0
-    qita=1
-    duanxian=2
+    duanxian=1
+    qita=2
 
 

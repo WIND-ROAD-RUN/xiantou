@@ -141,8 +141,8 @@ class FrameCallBefore:
             
     def decide_alarm_Frame_must_alarm_without_windowSize(self, processResultIndexMap: ProcessResultIndexMap):
         try:
-            duanxian_count = len(processResultIndexMap.get(ClassId.duanxian, []))
             print(processResultIndexMap)
+            duanxian_count = len(processResultIndexMap[ClassId.duanxian])
         except Exception:
             try:
                 duanxian_count = len(processResultIndexMap[ClassId.duanxian])
@@ -160,17 +160,14 @@ class FrameCallBefore:
             isSkip=False
         else:
             try:
-                qita = len(processResultIndexMap.get(ClassId.qita, []))
+                qita = len(processResultIndexMap[ClassId.qita])
             except Exception:
-                try:
-                    qita = len(processResultIndexMap[ClassId.qita])
-                except Exception:
-                    qita = 0
+                qita = 0
             
             if qita > 0:
                 isSkip = True
             
-            #print("断线数量:",duanxian_count,"其他异常数量:",qita,"本帧是否跳过报警:",isSkip)
+            print("其他异常数量:",qita,"本帧是否跳过报警:",isSkip)
 
 
         return isSkip
@@ -208,30 +205,22 @@ class FrameCallBefore:
         """
         cfg = Modules.instance().config
 
-        # 如果之前的跳帧计数器未用尽，直接跳过本帧判定（消耗一次）
-        if getattr(self, "_skip_frames_remaining", 0) > 0:
-            try:
-                self._skip_frames_remaining -= 1
-            except Exception:
-                self._skip_frames_remaining = 0
-            return None
-
+        # （已移除基于跳帧计数器的跳帧逻辑，改为遇到需跳帧时直接复位滑动窗口）
         # 获取连续合格清除阈值（连续多少帧为合格才关闭报警）
         try:
             clear_needed = int(getattr(cfg, "alarm_clear_consecutive", self._clear_required))
         except Exception:
             clear_needed = self._clear_required
 
-        # 如果当前帧因断线/其他异常被判定为跳过报警，则跳过当前帧并标记再跳若干帧（总跳过帧数由 self.skip_frame_total 控制）
+        # 如果当前帧因断线/其他异常被判定为跳过报警，则重置滑动窗口并返回（不更新计数器）
         isSkip = self.decide_alarm_Frame_is_skip(processResultIndexMap)
         if isSkip:
             try:
-                # 当前帧已被跳过，设置后续需要跳过的帧数（总跳过帧数 = self.skip_frame_total）
-                self._skip_frames_remaining = max(0, int(getattr(self, "skip_frame_total", 2)) - 1)
+                self._recent_alarm_window.clear()
             except Exception:
-                self._skip_frames_remaining = max(0, 2 - 1)
+                self._recent_alarm_window.clear()
             return None
-        
+
         isMustAlarm = self.decide_alarm_Frame_must_alarm_without_windowSize(processResultIndexMap)
         if isMustAlarm:
             print("本帧断线告警，直接开启报警")
