@@ -112,11 +112,9 @@ class FrameCallBefore:
     def decide_alarm_action_by_xiantou(self, processResultIndexMap: ProcessResultIndexMap)->bool:
         cfg = Modules.instance().config
 
-        # 无检测结果：计数 +1，并重置连续合格计数
         if len(processResultIndexMap) == 0:
             return True
         else:
-            # 安全获取线头计数
             try:
                 xiantou_count = len(processResultIndexMap.get(ClassId.XianTou, []))
             except Exception:
@@ -129,50 +127,106 @@ class FrameCallBefore:
                 return False
             else:
                 return True
+            
+    def decide_alarm_Frame_is_skip(self, processResultIndexMap: ProcessResultIndexMap):
+        isSkip = False
+        if len(processResultIndexMap) == 0:
+            isSkip=False
+        else:
+            try:
+                duanxian_count = len(processResultIndexMap.get(ClassId.duanxian, []))
+            except Exception:
+                try:
+                    duanxian_count = len(processResultIndexMap[ClassId.duanxian])
+                except Exception:
+                    duanxian_count = 0
+
+            if duanxian_count > 0:
+                isSkip = True
+
+            try:
+                qita = len(processResultIndexMap.get(ClassId.qita, []))
+            except Exception:
+                try:
+                    qita = len(processResultIndexMap[ClassId.qita])
+                except Exception:
+                    qita = 0
+            
+            if qita > 0:
+                isSkip = True
+            
+            #print("断线数量:",duanxian_count,"其他异常数量:",qita,"本帧是否跳过报警:",isSkip)
+
+
+        return isSkip
 
     def decide_alarm_action(self, processResultIndexMap: ProcessResultIndexMap):
         """
-        判断是否需要开启或关闭报警：
-        返回值："open" / "close" / None
-        仅负责判断并维护计数器（self._alarm_counter / self._clear_counter / _recent_alarm_window）。
-        开启规则（修改后）：
-            在最近 self._window_size 帧内，isAlarmInFrame 为 True 的次数 >= cfg.ng_baojinshu 时触发 "open"。
-        关闭规则（不变）：
-            连续达到 clear_needed 次认为可以关闭报警（返回 "close"）。
+        判断是否需要开启或关闭报警（纯判断，不直接操作硬件）。
+
+        说明：
+        - 本函数只负责根据当前帧的检测结果与内部计数器得出动作决策，
+          返回 "open" / "close" / None，具体执行由调用方 open_alarm()/close_alarm() 完成。
+        - 使用滑动窗口统计最近 N 帧（window_size，来源于 cfg.ng_baojinshu_rongyu）
+          中被判定为“本帧告警”的帧数；当窗口内告警帧数 >= cfg.ng_baojingshu 时，
+          返回 "open" 请求开启报警。
+        - 关闭规则：当连续清洁帧（即非告警帧）达到 clear_needed 次（来源于 cfg.alarm_clear_consecutive）
+          时，返回 "close" 请求关闭报警，并重置相关计数器。
+        - 本函数会维护以下内部状态：
+            self._recent_alarm_window : 最近若干帧的 0/1 列表（1 表示本帧为告警）
+            self._clear_counter         : 连续合格（非告警）帧计数
+            self._alarm_counter         : （兼容旧逻辑）可用于记录连续未合格次数（此处未增加）
+        - 若当前帧被 decide_alarm_Frame_is_skip 判定为跳过（例如断线/其他异常），
+          则不会更新窗口或计数器，也不会返回动作（返回 None）。
+
+        参数：
+            processResultIndexMap (ProcessResultIndexMap) -- 引擎/算法产生的本帧结果映射
+
+        返回：
+            "open"  -- 表示应开启报警（调用方应执行 open_alarm）
+            "close" -- 表示应关闭报警（调用方应执行 close_alarm）
+            None    -- 表示不做任何动作
+
+        注意：
+        - 函数内部对 cfg 字段做了容错处理（int 转换、默认值回退），以避免配置异常导致崩溃。
+        - 函数不会直接与硬件或定时器交互，便于单元测试和职责分离。
         """
         cfg = Modules.instance().config
+        # 获取连续合格清除阈值（连续多少帧为合格才关闭报警）
         try:
             clear_needed = int(getattr(cfg, "alarm_clear_consecutive", self._clear_required))
         except Exception:
             clear_needed = self._clear_required
 
-        # 原 decide_alarm_action_by_xiantou 的返回语义：True/False
-        # 这里我们把其结果解释为：isXiantouAlarm == True 表示“无报警/合格”，
-        # 所以 isAlarmInFrame 应为 not isXiantouAlarm（即只有当 decide 返回 False 才视为本帧告警）
+        # 判断本帧是否为线头告警（decide_alarm_action_by_xiantou 返回 True 表示“无告警/合格”）
         isXiantouAlarm = self.decide_alarm_action_by_xiantou(processResultIndexMap)
+        # 语义：isAlarmInFrame 为 True 表示本帧被视为“告警帧”
         isAlarmInFrame = bool(isXiantouAlarm)
 
-        # 更新滑动窗口（0/1）
+        # 如果当前帧因断线/其他异常被判定为跳过报警，直接不做动作判断
+        isSkip = self.decide_alarm_Frame_is_skip(processResultIndexMap)
+        if isSkip:
+            return None
+
+        # 窗口大小（最近 N 帧），优先读取配置 ng_baojinshu_rongyu
         try:
             window_size = int(getattr(cfg, "ng_baojinshu_rongyu", self._window_size))
         except Exception:
             window_size = self._window_size
 
+        # 将本帧告警（0/1）推入滑动窗口并保证长度
         self._recent_alarm_window.append(1 if isAlarmInFrame else 0)
-        # 保持窗口长度
         if len(self._recent_alarm_window) > window_size:
             try:
-                # pop oldest
                 self._recent_alarm_window.pop(0)
             except Exception:
-                # 如果出错，重置窗口以保证一致性
+                # 出错则截取最近 window_size 个元素以恢复一致性
                 self._recent_alarm_window = self._recent_alarm_window[-window_size:]
 
-        # 统计窗口内告警帧数
+        # 统计窗口内告警帧数（容错求和）
         try:
             alarm_count_in_window = sum(self._recent_alarm_window)
         except Exception:
-            # 兜底计算
             alarm_count_in_window = 0
             for v in self._recent_alarm_window:
                 try:
@@ -180,24 +234,24 @@ class FrameCallBefore:
                 except Exception:
                     pass
 
-        # 如果窗口内达到触发条件，则请求开启
+        # 读取触发告警所需的帧内告警次数阈值（cfg.ng_baojingshu）
         try:
             ng_threshold = int(cfg.ng_baojingshu)
         except Exception:
             ng_threshold = 1
 
+        # 如果窗口内达到触发条件，则请求开启报警
         if alarm_count_in_window >= ng_threshold:
+            # 遇到触发情况时，重置连续合格计数（因为出现了告警）
             self._clear_counter = 0
             return "open"
 
-        # 若本帧被认为是合格（非告警），则增加连续合格计数
+        # 如果本帧被认为是合格（非告警），则增加连续合格计数，满足条件时请求关闭报警
         if not isAlarmInFrame:
             self._clear_counter += 1
-            # 只有连续达到 clear_needed 次才认为可以关闭报警
             if self._clear_counter >= clear_needed:
-                # 达到清除条件，重置计数并请求关闭
+                # 达到关闭条件：重置计数与窗口，返回关闭请求
                 self._clear_counter = 0
-                # 同时清空窗口，避免残留影响
                 self._recent_alarm_window = []
                 return "close"
             else:
