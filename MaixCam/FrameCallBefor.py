@@ -104,6 +104,27 @@ class FrameCallBefore:
         elif mode == RunMode.STOP:
             self.run_stop()
 
+    def decide_alarm_action_by_xiantou(self, processResultIndexMap: ProcessResultIndexMap)->bool:
+        cfg = Modules.instance().config
+
+        # 无检测结果：计数 +1，并重置连续合格计数
+        if len(processResultIndexMap) == 0:
+            return True
+        else:
+            # 安全获取线头计数
+            try:
+                xiantou_count = len(processResultIndexMap.get(ClassId.XianTou, []))
+            except Exception:
+                try:
+                    xiantou_count = len(processResultIndexMap[ClassId.XianTou])
+                except Exception:
+                    xiantou_count = 0
+
+            if xiantou_count > int(cfg.ng_yuzhi):
+                return False
+            else:
+                return True
+
     def decide_alarm_action(self, processResultIndexMap: ProcessResultIndexMap):
         """
         判断是否需要开启或关闭报警：
@@ -116,36 +137,24 @@ class FrameCallBefore:
         except Exception:
             clear_needed = self._clear_required
 
-        # 无检测结果：计数 +1，并重置连续合格计数
-        if len(processResultIndexMap) == 0:
+        isXiantouAlarm=self.decide_alarm_action_by_xiantou(processResultIndexMap)
+
+        isAlarmInFrame = isXiantouAlarm
+       
+        if isAlarmInFrame:
             self._alarm_counter += 1
             self._clear_counter = 0
         else:
-            # 安全获取线头计数
-            try:
-                xiantou_count = len(processResultIndexMap.get(ClassId.XianTou, []))
-            except Exception:
-                try:
-                    xiantou_count = len(processResultIndexMap[ClassId.XianTou])
-                except Exception:
-                    xiantou_count = 0
-
-            # 未达阈值视为不合格 -> 增加未检测计数并重置合格计数
-            if xiantou_count < int(cfg.ng_yuzhi):
-                self._alarm_counter += 1
+            self._clear_counter += 1
+            # 只有连续达到 clear_needed 次才认为可以关闭报警
+            if self._clear_counter >= clear_needed:
+                # 达到清除条件，重置计数并请求关闭
+                self._alarm_counter = 0
                 self._clear_counter = 0
+                return "close"
             else:
-                # 达到阈值视为一次合格，累计连续合格计数
-                self._clear_counter += 1
-                # 只有连续达到 clear_needed 次才认为可以关闭报警
-                if self._clear_counter >= clear_needed:
-                    # 达到清除条件，重置计数并请求关闭
-                    self._alarm_counter = 0
-                    self._clear_counter = 0
-                    return "close"
-                else:
-                    # 尚未达到连续清除次数，不做打开或关闭决定
-                    return None
+                # 尚未达到连续清除次数，不做打开或关闭决定
+                return None
 
         # 检查是否需要开启报警（连续未检测达到阈值）
         try:
