@@ -122,12 +122,15 @@ class FrameCallBefore:
             
 
     def decide_alarm_action(self, processResultIndexMap: ProcessResultIndexMap,processResult:ProcessResult):
+        # 处理流程：
+        # 1. 仅在识别到且只识别到一个主体时才进入主体内线头判断，否则返回 None 让上层保持现状。
         body=processResultIndexMap.get(ClassId.body, [])
         if len(body) != 1:
             return None
         
         bodyIndex = body[0]
 
+        # 2. 若主体存在但完全没有线头检测结果，则视为线头缺失，立即请求开启报警。
         xiantou = processResultIndexMap.get(ClassId.xiantou, [])
         bodyRect = processResult[bodyIndex]
         if len(xiantou) ==0 :
@@ -135,6 +138,7 @@ class FrameCallBefore:
         
         hasXiantouInBody = False
 
+        # 3. 遍历每个线头，确认其中心点是否落在主体矩形内部，只要找到一个即视为主体内存在线头。
         for xiantouIndex in xiantou:
             xiantouRect = processResult[xiantouIndex]
 
@@ -145,6 +149,7 @@ class FrameCallBefore:
                 hasXiantouInBody = True
                 break
 
+        # 4. 主体内找不到线头则继续报警，否则返回 "false" 交由上层保持或关闭报警。
         if not hasXiantouInBody:
             return "open"
 
