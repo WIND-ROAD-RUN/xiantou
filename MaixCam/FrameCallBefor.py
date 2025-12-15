@@ -121,7 +121,7 @@ class FrameCallBefore:
             self.run_stop()
             
 
-    def decide_alarm_action(self, processResultIndexMap: ProcessResultIndexMap,processResult:ProcessResult):
+    def decide_alarm_action(self, processResultIndexMap: ProcessResultIndexMap,processResult:ProcessResult,width:int=0):
         # 处理流程：
         # 1. 仅在识别到且只识别到一个主体时才进入主体内线头判断，否则返回 None 让上层保持现状。
         body=processResultIndexMap.get(ClassId.body, [])
@@ -133,6 +133,10 @@ class FrameCallBefore:
         # 2. 若主体存在但完全没有线头检测结果，则视为线头缺失，立即请求开启报警。
         xiantou = processResultIndexMap.get(ClassId.xiantou, [])
         bodyRect = processResult[bodyIndex]
+
+        if bodyRect.centralX < width/4 or bodyRect.centralX > width*3/4:
+            return None
+
         if len(xiantou) ==0 :
             return "open"
         
@@ -214,7 +218,7 @@ class FrameCallBefore:
 
         self._clear_counter = 0
 
-    def warning_alarm_timeout(self, processResultIndexMap: ProcessResultIndexMap,processResult:ProcessResult):
+    def warning_alarm_timeout(self, processResultIndexMap: ProcessResultIndexMap,processResult:ProcessResult,width:int=0):
         """
         入口：先检查全局开关，再通过 decide_alarm_action 得到动作並调用 open_alarm/close_alarm。
         """
@@ -232,7 +236,7 @@ class FrameCallBefore:
                 pass
             return
 
-        action = self.decide_alarm_action(processResultIndexMap,processResult)
+        action = self.decide_alarm_action(processResultIndexMap,processResult,width)
         if action == "open":
             self.open_alarm()
         elif action == "close":
@@ -263,7 +267,7 @@ class FrameCallBefore:
 
         processResultIndexMap = imgProCom.context.processResultIndexMap
         processResult = imgProCom.context.processResult
-        self.warning_alarm_timeout(processResultIndexMap,processResult)
+        self.warning_alarm_timeout(processResultIndexMap,processResult,img.size()[0])
 
         if self.isTrigger():
             dirPath = Modules.instance().paths.img_path
