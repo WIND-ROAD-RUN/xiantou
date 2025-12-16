@@ -26,8 +26,9 @@ class Modules:
 
     def defineVar(self):
         classIDWithName=ClassIDWithName()
-        classIDWithName[0]=r"body"
-        classIDWithName[1]=r"xian"
+        classIDWithName[0]=r"background"
+        classIDWithName[1]=r"body"
+        classIDWithName[2]=r"xian"
         return classIDWithName
     
     def readConfig(self):

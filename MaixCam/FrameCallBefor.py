@@ -52,6 +52,8 @@ class FrameCallBefore:
         self._alarm_press_start_ms = None
         self._alarm_long_pressed_triggered = False
         self.lastIsSkipTakePicture=False
+        self.hasBody = 0
+        self.lastIsBad = False
 
     def __call__(self):
         self.run()
@@ -111,11 +113,7 @@ class FrameCallBefore:
             self._alarm_long_pressed_triggered = False
 
         if mode == RunMode.RUN:
-            if self.lastIsSkipTakePicture:
-                self.run_run()
-                self.lastIsSkipTakePicture=False
-            else:
-                self.lastIsSkipTakePicture=True
+            self.run_run()
     
         elif mode == RunMode.STOP:
             self.run_stop()
@@ -126,18 +124,28 @@ class FrameCallBefore:
         # 1. 仅在识别到且只识别到一个主体时才进入主体内线头判断，否则返回 None 让上层保持现状。
         body=processResultIndexMap.get(ClassId.body, [])
         if len(body) != 1:
+            self.hasBody=0
+            self.lastIsBad = False
             return None
-        
+
+        if self.hasBody != 3:
+            self.hasBody= self.hasBody+1
+            self.lastIsBad = False
+            return None
+
         bodyIndex = body[0]
+
 
         # 2. 若主体存在但完全没有线头检测结果，则视为线头缺失，立即请求开启报警。
         xiantou = processResultIndexMap.get(ClassId.xiantou, [])
         bodyRect = processResult[bodyIndex]
 
         if bodyRect.centralX < width/4 or bodyRect.centralX > width*3/4:
+            self.lastIsBad = False
             return None
 
-        if len(xiantou) ==0 :
+        if len(xiantou) ==0 and self.lastIsBad == True:
+            self.lastIsBad = True
             return "open"
         
         hasXiantouInBody = False
@@ -154,9 +162,11 @@ class FrameCallBefore:
                 break
 
         # 4. 主体内找不到线头则继续报警，否则返回 "false" 交由上层保持或关闭报警。
-        if not hasXiantouInBody:
+        if not hasXiantouInBody and self.lastIsBad == True:
+            self.lastIsBad = True
             return "open"
 
+        self.lastIsBad = False
         return "false"
 
     def open_alarm(self):
