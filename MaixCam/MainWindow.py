@@ -80,7 +80,7 @@ class MaixCamMainWindow(MMainWindow):
     def build_run(self):
         self.debugContainer = MTabPage(0, 0, self.tabWidget.w, self.tabWidget.h)
 
-        self.labelDisImgDebug= MLabel(text="Debug模式下显示图像", x=self.margin, y=self.margin,w=self.width-self.margin*2,h=self.height*2)
+        self.labelDisImgDebug= MLabel(text="Debug模式下显示图像", x=self.margin, y=self.margin,w=self.width,h=self.height)
         self.debugContainer.add_child(self.labelDisImgDebug)
 
         btn_w = 100
