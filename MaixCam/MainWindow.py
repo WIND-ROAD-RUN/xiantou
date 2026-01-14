@@ -4,9 +4,11 @@ from Mt.MLabel import MLabel
 from Mt.MPushButton import MPushButton
 from Mt.MWidget import MWidget
 from Mt.MApplication import MApplication
+from Mt.NumberKeyBoard import NumberKeyBoard
+
 from MaixCam.RunningInfo import RunningInfo, RunMode
 from MaixCam.Modules import Modules
-from Mt.NumberKeyBoard import NumberKeyBoard
+
 
 from maix import image
 
